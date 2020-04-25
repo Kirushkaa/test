@@ -1,0 +1,6 @@
+pre-commit==2.0.0
+PyYAML==5.3
+pylint==2.4.4
+pytest-cov==2.8.1
+responses==0.10.9
+pook==0.2.8

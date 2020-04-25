@@ -1,0 +1,14 @@
+#stages:
+#  - test
+#
+#before_script:
+#  - docker info
+#
+#test:
+#  stage: test
+#  only:
+#    - merge_requests
+#  script:
+#    - docker rm -f bot_engine_tests || true
+#    - docker build -f tests.Dockerfile -t timetable_assistant_tests .
+#    - docker run --name timetable_assistant_tests timetable_assistant_tests

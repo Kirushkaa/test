@@ -1,3 +1,4 @@
+import re
 from typing import List
 
 from telegram import Update, Message
@@ -13,7 +14,6 @@ class UniFilter(BaseFilter):
             phrases: List[str],
             file_types: List[str],
             state: List[str],
-            priority: int,
             dispatcher: Dispatcher,
     ):
         self.bot_name = bot_name
@@ -21,7 +21,6 @@ class UniFilter(BaseFilter):
         self.handler = handler
         self.file_types = file_types
         self.state = state
-        self.priority = priority
         self.dp = dispatcher
 
     name = None
@@ -45,9 +44,8 @@ class UniFilter(BaseFilter):
             self.handler.collect_additional_context(context, update, self.dp, "_")
 
         if self.phrases == () or \
-                (getattr(update.message,
-                         "caption") and update.message.caption.lower() in self.phrases) or \
-                (getattr(update.message, "text") and update.message.text.lower() in self.phrases):
+                (getattr(update.message, "caption") and self.check_for_regex(update.message.caption.lower(), self.phrases)) or \
+                (getattr(update.message, "text") and self.check_for_regex(update.message.text.lower(), self.phrases)):
             conclusion["phrase"] = True
         if not conclusion["phrase"]:
             return False
@@ -74,11 +72,21 @@ class UniFilter(BaseFilter):
         return True
 
     @staticmethod
-    def check_for_docs(message: Message):
+    def check_for_docs(message: Message) -> bool:
         if hasattr(message, "document") and getattr(message, "document") or \
                 hasattr(message, "photo") and getattr(message, "photo") or \
                 hasattr(message, "audio") and getattr(message, "audio") or \
                 hasattr(message, "voice") and getattr(message, "voice") or \
                 hasattr(message, "video") and getattr(message, "video"):
             return True
+        return False
+
+    @staticmethod
+    def check_for_regex(
+            message: str,
+            phrase_pool: list
+    ) -> bool:
+        for phrase in phrase_pool:
+            if re.search(phrase.lower(), message):
+                return True
         return False

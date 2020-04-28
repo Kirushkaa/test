@@ -4,8 +4,9 @@ import sys
 
 from typing import Optional, Callable, List
 
+from telegram import LabeledPrice
 from telegram.ext import (
-    Updater,
+    Updater, PreCheckoutQueryHandler, MessageHandler, Filters,
 )
 
 from telegram.error import BadRequest
@@ -62,19 +63,27 @@ class TelegramBot(Updater):
             phrases: List[str] = (),
             file_types: List[str] = (),
             state: List[str] = None,
-            priority: int = 0,
+            pre_checkout: Optional[bool] = False,
+            successful_payment: Optional[bool] = False
     ):
 
         def decorator(func: Callable):
-            return UniHandler(
-                callback_func=func,
-                dispatcher=self.dispatcher,
-                bot_name=self.bot_name,
-                phrases=phrases,
-                file_types=file_types,
-                state=state,
-                priority=priority,
-            )
+            if pre_checkout:
+                return UniHandler.handler_list.append(
+                    PreCheckoutQueryHandler(
+                        callback=func,
+                    )
+                )
+            else:
+                return UniHandler(
+                    callback_func=func,
+                    dispatcher=self.dispatcher,
+                    bot_name=self.bot_name,
+                    phrases=phrases,
+                    file_types=file_types,
+                    state=state,
+                    successful_payment=successful_payment
+                )
 
         return decorator
 
@@ -167,20 +176,21 @@ class TelegramBot(Updater):
 
     def broadcast(
             self,
-            users_id: Optional[List] = 0,
+            user_ids: Optional[List] = None,
             message: Optional[str] = "",
-            image: Optional[Image] = Default(),
-            video: Optional[Video] = Default(),
-            audio: Optional[Audio] = Default(),
-            document: Optional[Document] = Default(),
-            animation: Optional[Animation] = Default(),
-            keyboard: Optional[Keyboard] = None,
-    ) -> None:
-        if not users_id:
-            users_id = self.id_counter()
-        for user in users_id:
+            image: Optional[Image] = Default,
+            video: Optional[Video] = Default,
+            audio: Optional[Audio] = Default,
+            document: Optional[Document] = Default,
+            animation: Optional[Animation] = Default,
+            keyboard: Optional[Keyboard] = Default,
+    ) -> int:
+        if user_ids is None:
+            user_ids = self.id_counter()
+        final_amount = 0
+        for user in user_ids:
             try:
-                self.bot.response_processing(
+                self.response_processing(
                     user_id=user,
                     message=message,
                     image=image,
@@ -190,11 +200,9 @@ class TelegramBot(Updater):
                     animation=animation,
                     keyboard=keyboard
                 )
-            except BadRequest:
+                final_amount += 1
+            except Exception as exc:
                 self.bot.logger.warning(
-                    f'Broadcast to user {str(user)} caused error {BadRequest.__text_signature__}'
+                    f'Broadcast to user {str(user)} caused error {exc}'
                 )
-            except:
-                self.bot.logger.warning(
-                    f'Broadcast to user {str(user)} caused unknown error'
-                )
+        return final_amount

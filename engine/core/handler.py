@@ -62,7 +62,7 @@ class UniHandler(MessageHandler):
                 "id": data["id"],
                 "user_data": data,
                 "state": '',
-                "payload": [],
+                "payload": {},
             }
 
         self.update_file_context(context.user_data[data["id"]])

@@ -2,23 +2,26 @@ import json
 from pathlib import Path
 from typing import Callable, List, Optional
 
+from telegram import Update
 from telegram.ext import MessageHandler, Dispatcher, Filters
 
 from engine.core.filter import UniFilter
 
 
 class UniHandler(MessageHandler):
-    handler_list = []
+    handler_storage = []
 
     def __init__(
             self,
             callback_func: Callable,
             dispatcher: Dispatcher,
             bot_name: str,
-            file_types: List[str] = (),
-            phrases: List[str] = (),
-            state: list = None,
-            successful_payment: Optional[bool] = False
+            file_types: List[str],
+            phrases: List[str],
+            state: list,
+            priority: int,
+            inline_mode: bool,
+            successful_payment: Optional[bool]
     ):
         self.bot_name = bot_name
         self.filter = UniFilter(
@@ -27,6 +30,7 @@ class UniHandler(MessageHandler):
             phrases=phrases,
             file_types=file_types,
             state=state,
+            inline_mode=inline_mode,
             dispatcher=dispatcher,
         )
         if successful_payment:
@@ -40,11 +44,17 @@ class UniHandler(MessageHandler):
                 callback=callback_func
             )
 
-        UniHandler.handler_list.append(self)
+        UniHandler.handler_storage.append((self, priority))
 
     def handle_update(self, update, dispatcher, check_result, context=None):
         self.collect_additional_context(context, update, dispatcher, check_result)
-        user_id = update.message.to_dict()["from"]["id"]
+        if update.message:
+            user_id = update.message.to_dict()["from"]["id"]
+        elif update.callback_query:
+            user_id = update.callback_query.to_dict()["from"]["id"]
+        else:
+            print("Unexpected update")
+            return
         return self.callback(update.to_dict(), context.user_data[user_id])
 
     def update_file_context(self, context: dict):

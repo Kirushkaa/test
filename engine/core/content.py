@@ -88,6 +88,8 @@ class Keyboard:
                 if inline_mode:
                     keyboard_string = [
                         InlineKeyboardButton(**button)
+                        if isinstance(button, dict)
+                        else InlineKeyboardButton(text=button, callback_data=button)
                         for button in _string
                     ]
                 else:

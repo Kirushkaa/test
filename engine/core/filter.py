@@ -1,7 +1,8 @@
+from datetime import datetime
 import re
-from typing import List
+from typing import List, Callable
 
-from telegram import Update, Message
+from telegram import Update, Message, Chat
 from telegram.ext import BaseFilter, CallbackContext, Dispatcher
 
 
@@ -14,6 +15,7 @@ class UniFilter(BaseFilter):
             phrases: List[str],
             file_types: List[str],
             state: List[str],
+            inline_mode: bool,
             dispatcher: Dispatcher,
     ):
         self.bot_name = bot_name
@@ -22,6 +24,7 @@ class UniFilter(BaseFilter):
         self.file_types = file_types
         self.state = state
         self.dp = dispatcher
+        self.inline_mode = inline_mode
 
     name = None
     update_filter = True
@@ -31,14 +34,32 @@ class UniFilter(BaseFilter):
             self,
             update: Update,
     ):
-        user_id = update.message.to_dict()["from"]["id"]
+        if not update.message and not update.callback_query:
+            return False
+
         conclusion = {
             "state": False,
             "file_type": False,
-            "phrase": False
+            "phrase": False,
         }
         context = CallbackContext.from_update(update, self.dp)
-        data = update.to_dict()["message"]["from"]
+
+        if self.inline_mode:
+            if update.callback_query:
+                data = update.to_dict()["callback_query"]["from"]
+                update.message = Message(
+                    chat=Chat(id=update.callback_query.chat_instance, type='private'),
+                    date=datetime.today(),
+                    from_user=update.callback_query.from_user,
+                    message_id=update.callback_query.id,
+                    text=update.callback_query.data,
+                )
+            else:
+                return False
+        else:
+            if update.callback_query:
+                return False
+            data = update.to_dict()["message"]["from"]
 
         if not context.user_data.get(data["id"]):
             self.handler.collect_additional_context(context, update, self.dp, "_")
@@ -49,7 +70,7 @@ class UniFilter(BaseFilter):
             conclusion["phrase"] = True
         if not conclusion["phrase"]:
             return False
-        if not self.state or context.user_data[user_id]["state"] in self.state:
+        if not self.state or context.user_data[data["id"]]["state"] in self.state:
             conclusion["state"] = True
         if not conclusion["state"]:
             return False

@@ -123,7 +123,7 @@ class TelegramBot(Updater):
                 self.bot.send_message(
                     chat_id=user_id,
                     text=message,
-                    parse_mode="MarkdownV2",
+                    parse_mode="Markdown",
                     reply_markup=keyboard.keyboard
                 )
 
@@ -132,7 +132,7 @@ class TelegramBot(Updater):
                 chat_id=user_id,
                 photo=image.media[0],
                 caption=message,
-                parse_mode="MarkdownV2",
+                parse_mode="Markdown",
                 reply_markup=keyboard.keyboard
             )
         elif video.media:
@@ -140,7 +140,7 @@ class TelegramBot(Updater):
                 chat_id=user_id,
                 video=video.media[0],
                 caption=message,
-                parse_mode="MarkdownV2",
+                parse_mode="Markdown",
                 reply_markup=keyboard.keyboard
             )
         elif audio.media:
@@ -148,7 +148,7 @@ class TelegramBot(Updater):
                 chat_id=user_id,
                 audio=audio.media,
                 caption=message,
-                parse_mode="MarkdownV2",
+                parse_mode="Markdown",
                 reply_markup=keyboard.keyboard
             )
         elif animation.media:
@@ -156,7 +156,7 @@ class TelegramBot(Updater):
                 chat_id=user_id,
                 animation=animation.media,
                 caption=message,
-                parse_mode="MarkdownV2",
+                parse_mode="Markdown",
                 reply_markup=keyboard.keyboard
             )
         elif document.media:
@@ -164,14 +164,14 @@ class TelegramBot(Updater):
                 chat_id=user_id,
                 document=document.media,
                 caption=message,
-                parse_mode="MarkdownV2",
+                parse_mode="Markdown",
                 reply_markup=keyboard.keyboard
             )
         else:
             self.bot.send_message(
                 chat_id=user_id,
                 text=message,
-                parse_mode="MarkdownV2",
+                parse_mode="Markdown",
                 reply_markup=keyboard.keyboard
             )
 
@@ -205,7 +205,7 @@ class TelegramBot(Updater):
                 self.bot.edit_message_caption(
                     chat_id=user_id,
                     message_id=message_id,
-                    parse_mode="MarkdownV2",
+                    parse_mode="Markdown",
                     caption=text,
                     reply_markup=keyboard.keyboard
                 )
@@ -214,7 +214,7 @@ class TelegramBot(Updater):
             self.bot.edit_message_text(
                 chat_id=user_id,
                 message_id=message_id,
-                parse_mode="MarkdownV2",
+                parse_mode="Markdown",
                 text=text,
                 reply_markup=keyboard.keyboard
             )

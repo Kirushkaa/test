@@ -6,7 +6,7 @@ from typing import Optional, Callable, List
 
 from telegram import LabeledPrice, Update
 from telegram.ext import (
-    Updater, PreCheckoutQueryHandler, MessageHandler, Filters,
+    Updater, PreCheckoutQueryHandler, MessageHandler, Filters, CallbackContext,
 )
 
 from telegram.error import BadRequest
@@ -92,10 +92,17 @@ class TelegramBot(Updater):
             self.dispatcher.add_handler(handle[0])
         self.bot.logger.warning('Start polling')
 
-    def error(self, update, context) -> None:
+    def error(
+            self,
+            update: Update,
+            context: CallbackContext,
+    ) -> None:
         """Log Errors caused by Updates."""
         self.bot.logger.warning('Update "%s" caused error "%s"', update, context.error)
-        update.message.reply_text(ERROR)
+        self.response_processing(
+            user_id=context.chat_data["id"],
+            message=ERROR,
+        )
 
     def response_processing(
             self,

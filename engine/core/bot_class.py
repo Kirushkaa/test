@@ -100,7 +100,7 @@ class TelegramBot(Updater):
         """Log Errors caused by Updates."""
         self.bot.logger.warning('Update "%s" caused error "%s"', update, context.error)
         self.response_processing(
-            user_id=update.to_dict()["effective_chat"]["id"],
+            user_id=update.to_dict()["_effective_chat"]["id"],
             message=ERROR,
         )
 

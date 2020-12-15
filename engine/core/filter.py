@@ -30,9 +30,9 @@ class UniFilter(BaseFilter):
             inline_mode: bool,
             dispatcher: Dispatcher,
     ):
-        self.vectorizer = Vectorizer.model
         self.faq_json_path = faq_json_path
         if self.faq_json_path is not None:
+            self.vectorizer = Vectorizer.model
             with open(str(Path.cwd().absolute() / Path(self.faq_json_path)), "r+") as f:
                 self.faq_dict: Dict = json.load(f)
 

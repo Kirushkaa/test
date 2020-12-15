@@ -1,15 +1,13 @@
+from pathlib import Path
+
 import logging
 import os
 import sys
 
 from typing import Optional, Callable, List
 
-from telegram import LabeledPrice, Update
-from telegram.ext import (
-    Updater, PreCheckoutQueryHandler, MessageHandler, Filters, CallbackContext,
-)
-
-from telegram.error import BadRequest
+from telegram import Update
+from telegram.ext import (Updater, CallbackContext)
 
 from engine.config import ERROR
 from .handler import UniHandler
@@ -49,6 +47,9 @@ class TelegramBot(Updater):
         self.debug_logger.setFormatter(self.formatter)
         self.logger.addHandler(self.debug_logger)
 
+        if not os.path.exists(Path(f"{os.curdir}/logs")):
+            os.mkdir(Path(f"{os.curdir}/logs"))
+
         self.file_handler_logger = logging.FileHandler(
             f"{os.curdir}/logs/{self.bot_name}.log",
             encoding="utf8"
@@ -60,6 +61,8 @@ class TelegramBot(Updater):
 
     def bot_handler(
             self,
+            faq_json_path: str = None,
+            similarity_score: float = 0.5,
             phrases: List[str] = (),
             file_types: List[str] = (),
             state: List[str] = None,
@@ -74,6 +77,8 @@ class TelegramBot(Updater):
                 dispatcher=self.dispatcher,
                 bot_name=self.bot_name,
                 phrases=phrases,
+                faq_json_path=faq_json_path,
+                similarity_score=similarity_score,
                 file_types=file_types,
                 state=state,
                 priority=priority,

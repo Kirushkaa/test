@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 
 metadata = {
-    "version": "0.0.1",
+    "version": "0.1.0",
     "name": "MDI TGS",
     "description": "Engine for telegram system",
     "authors": "MDI",

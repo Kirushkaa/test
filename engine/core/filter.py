@@ -1,6 +1,16 @@
-from datetime import datetime
+import json
 import re
-from typing import List, Callable
+import numpy as np
+
+
+from pathlib import Path
+
+from datetime import datetime
+from typing import List, Optional, Dict
+
+from sklearn.metrics.pairwise import cosine_similarity
+
+from engine.faq_models.vectorizer import Vectorizer
 
 from telegram import Update, Message, Chat
 from telegram.ext import BaseFilter, CallbackContext, Dispatcher
@@ -13,11 +23,24 @@ class UniFilter(BaseFilter):
             bot_name: str,
             handler,
             phrases: List[str],
+            faq_json_path: Optional[str],
+            similarity_score: float,
             file_types: List[str],
             state: List[str],
             inline_mode: bool,
             dispatcher: Dispatcher,
     ):
+        self.vectorizer = Vectorizer.model
+        self.faq_json_path = faq_json_path
+        if self.faq_json_path is not None:
+            with open(str(Path.cwd().absolute() / Path(self.faq_json_path)), "r+") as f:
+                self.faq_dict: Dict = json.load(f)
+
+            for key in self.faq_dict.keys():
+                self.faq_dict[key]["vectors"] = self.vectorizer.encode(
+                    self.faq_dict[key]["phrases"])
+
+        self.similarity_score = similarity_score
         self.bot_name = bot_name
         self.phrases = phrases
         self.handler = handler
@@ -30,10 +53,7 @@ class UniFilter(BaseFilter):
     update_filter = True
     data_filter = False
 
-    def filter(
-            self,
-            update: Update,
-    ):
+    def filter(self, update: Update):
         if not update.message and not update.callback_query:
             return False
 
@@ -64,10 +84,36 @@ class UniFilter(BaseFilter):
         if not context.user_data.get(data["id"]):
             self.handler.collect_additional_context(context, update, self.dp, "_")
 
-        if self.phrases == () or \
-                (getattr(update.message, "caption") and self.check_for_regex(update.message.caption.lower(), self.phrases)) or \
-                (getattr(update.message, "text") and self.check_for_regex(update.message.text.lower(), self.phrases)):
+        if getattr(update.message, "caption"):
+            mess = update.message.caption.lower()
+        elif getattr(update.message, "text"):
+            mess = update.message.text.lower()
+        else:
+            mess = None
+
+        if mess is not None and self.phrases == () or self.check_for_regex(mess, self.phrases):
             conclusion["phrase"] = True
+
+        if mess is not None and self.faq_json_path:
+            faq_options = []
+            message_vector = self.vectorizer.encode([mess])
+            for key in self.faq_dict.keys():
+                max_score = np.max(cosine_similarity(message_vector, self.faq_dict[key]["vectors"]))
+                if max_score > self.similarity_score:
+                    conclusion["phrase"] = True
+                    faq_options.append(
+                        (key, {
+                            "phrases": self.faq_dict[key]["phrases"],
+                            "answer": self.faq_dict[key]["answer"],
+                            "metadata": self.faq_dict[key]["metadata"]
+                        }, max_score)
+                    )
+            if faq_options:
+                faq_options.sort(key=lambda x: x[2], reverse=True)
+                self.handler.handler_payload.update({"faq_answer": faq_options})
+            else:
+                conclusion["phrase"] = False
+
         if not conclusion["phrase"]:
             return False
         if not self.state or context.user_data[data["id"]]["state"] in self.state:
@@ -75,10 +121,7 @@ class UniFilter(BaseFilter):
         if not conclusion["state"]:
             return False
         if self.file_types == ():
-            if self.check_for_docs(update.message):
-                conclusion["file_type"] = False
-            else:
-                conclusion["file_type"] = True
+            conclusion["file_type"] = False if self.check_for_docs(update.message) else True
         elif self.file_types == ["any"]:
             conclusion["file_type"] = True
         else:

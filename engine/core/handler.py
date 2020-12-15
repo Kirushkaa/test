@@ -1,8 +1,8 @@
+import os
+
 import json
 from pathlib import Path
 from typing import Callable, List, Optional
-
-from telegram import Update
 from telegram.ext import MessageHandler, Dispatcher, Filters
 
 from engine.core.filter import UniFilter
@@ -17,6 +17,8 @@ class UniHandler(MessageHandler):
             dispatcher: Dispatcher,
             bot_name: str,
             file_types: List[str],
+            faq_json_path: Optional[str],
+            similarity_score: float,
             phrases: List[str],
             state: list,
             priority: int,
@@ -24,10 +26,13 @@ class UniHandler(MessageHandler):
             successful_payment: Optional[bool]
     ):
         self.bot_name = bot_name
+        self.handler_payload = {}
         self.filter = UniFilter(
             bot_name=bot_name,
             handler=self,
             phrases=phrases,
+            faq_json_path=faq_json_path,
+            similarity_score=similarity_score,
             file_types=file_types,
             state=state,
             inline_mode=inline_mode,
@@ -55,7 +60,9 @@ class UniHandler(MessageHandler):
         else:
             print("Unexpected update")
             return
-        return self.callback(update.to_dict(), context.user_data[user_id])
+        final_update = update.to_dict()
+        final_update["handler_payload"] = self.handler_payload
+        return self.callback(final_update, context.user_data[user_id])
 
     def update_file_context(self, context: dict):
         with open(
@@ -66,6 +73,9 @@ class UniHandler(MessageHandler):
             file.write(json.dumps(context))
 
     def collect_additional_context(self, context, update, dispatcher, check_result):
+        if not os.path.exists(Path(f"/tmp/{self.bot_name}")):
+            os.mkdir(Path(f"/tmp/{self.bot_name}"))
+            os.mkdir(Path(f"/tmp/{self.bot_name}/contexts"))
         data = update.to_dict()["message"]["from"]
         if not context.user_data.get(data["id"]):
             context.user_data[data["id"]] = {
